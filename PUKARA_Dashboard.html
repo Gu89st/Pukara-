@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PUKARA · Tablero de Seguimiento del BID</title>
+<style>
+:root{
+ --navy:#0B2E5C; --dnavy:#002B5C; --blue:#0082C3; --slate:#3E6A99; --teal:#00A199;
+ --dteal:#00736E; --green:#0F9D6B; --warn:#E0922F; --risk:#D6452B; --pend:#94A3B8;
+ --ink:#1F2A37; --sub:#5A6675; --grid:#D6E0EC; --light:#EAF2F8; --bg:#F4F7FB;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Arial,Helvetica,sans-serif;font-size:13px}
+header{background:linear-gradient(90deg,var(--dnavy),var(--navy));color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.3px}
+header .sub{font-size:12px;color:#bcd4ec}
+header .spacer{flex:1}
+header .corte{display:flex;align-items:center;gap:6px;font-size:12px;color:#cfe0f1}
+header input[type=date]{border:none;border-radius:6px;padding:4px 6px;font-size:12px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;padding:10px 20px;background:#fff;border-bottom:1px solid var(--grid)}
+button{font-family:inherit;font-size:12px;border:1px solid var(--grid);background:#fff;color:var(--ink);padding:6px 11px;border-radius:7px;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--blue);color:var(--blue)}
+button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+button.primary:hover{background:#0a6fa6;color:#fff}
+button.warn{color:var(--risk)}
+button.warn:hover{border-color:var(--risk)}
+.wrap{padding:16px 20px;max-width:1500px;margin:0 auto}
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--grid);border-top:3px solid var(--blue);border-radius:10px;padding:10px 12px}
+.kpi .v{font-size:26px;font-weight:700;line-height:1.1}
+.kpi .l{font-size:11px;color:var(--sub);margin-top:2px}
+.panels{display:grid;grid-template-columns:1.15fr 1fr 1.25fr;gap:12px;margin-bottom:14px}
+.card{background:#fff;border:1px solid var(--grid);border-radius:10px;padding:12px 14px}
+.card h3{margin:0 0 10px;font-size:13px;color:var(--navy)}
+.donut-wrap{display:flex;align-items:center;gap:16px}
+.donut{width:120px;height:120px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center}
+.donut .hole{width:78px;height:78px;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut .hole b{font-size:24px;color:var(--navy)}
+.donut .hole span{font-size:10px;color:var(--sub)}
+.legend{font-size:12px;line-height:1.9}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.bar-row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px}
+.bar-row .lab{width:74px;color:var(--sub);flex:none;text-align:right}
+.bar-row .lab2{width:120px;color:var(--ink);flex:none;font-size:11px}
+.track{flex:1;background:var(--light);border-radius:5px;height:16px;overflow:hidden;display:flex}
+.seg{height:100%}
+.bar-row .num{width:34px;flex:none;font-weight:600;font-size:11px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--grid);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.filters select,.filters input[type=text]{font-family:inherit;font-size:12px;padding:5px 7px;border:1px solid var(--grid);border-radius:7px;background:#fff;color:var(--ink)}
+.filters label{font-size:10px;color:var(--sub);display:flex;flex-direction:column;gap:3px}
+.tablecard{background:#fff;border:1px solid var(--grid);border-radius:10px;overflow:hidden}
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:1100px;font-size:12px}
+th{background:var(--dnavy);color:#fff;text-align:left;padding:8px 8px;font-weight:600;position:sticky;top:0;font-size:11px}
+td{padding:6px 8px;border-bottom:1px solid #eef3f8;vertical-align:middle}
+tr:hover td{background:#f8fbfe}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{background:#0a3c73}
+th .ar{font-size:9px;margin-left:3px}
+.fr-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;white-space:nowrap}
+.fr-dot{width:10px;height:10px;border-radius:3px;flex:none}
+.chip{display:inline-block;background:var(--light);color:#0b5c94;border:1px solid #cfe0f1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600;margin:1px 2px 1px 0;cursor:help}
+.chip.sop{background:#f3f6fa;color:var(--sub);font-weight:500}
+.sel-estado{border:none;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:700;color:#fff;cursor:pointer}
+.pct{width:54px;border:1px solid var(--grid);border-radius:6px;padding:3px 5px;font-size:12px;text-align:center}
+.venc{background:var(--risk);color:#fff;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700}
+.notas{width:140px;border:1px solid transparent;border-radius:6px;padding:3px 5px;font-size:11px;background:transparent}
+.notas:focus{border-color:var(--grid);background:#fff;outline:none}
+.rowbtn{border:none;background:none;cursor:pointer;color:var(--sub);font-size:13px;padding:2px 5px;border-radius:5px}
+.rowbtn:hover{background:var(--light);color:var(--blue)}
+.rowbtn.del:hover{color:var(--risk)}
+.modal-bg{position:fixed;inset:0;background:rgba(11,28,52,.45);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:30px 14px;overflow:auto}
+.modal{background:#fff;border-radius:12px;max-width:680px;width:100%;padding:20px 22px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+.modal h2{margin:0 0 14px;font-size:16px;color:var(--navy)}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:11px;color:var(--sub);margin-bottom:4px;font-weight:600}
+.fld input,.fld select{width:100%;font-family:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--grid);border-radius:8px}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;max-height:170px;overflow:auto;border:1px solid var(--grid);border-radius:8px;padding:8px}
+.checks label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:var(--ink);cursor:pointer}
+.checks input{width:auto}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+.mtable{width:100%;border-collapse:collapse;font-size:12px}
+.mtable th{position:static;background:var(--light);color:var(--navy);padding:6px}
+.mtable td{padding:4px 5px;border-bottom:1px solid #eef3f8}
+.mtable input,.mtable select{width:100%;font-size:11px;padding:4px;border:1px solid var(--grid);border-radius:6px}
+.small{font-size:11px;color:var(--sub)}
+.flex{display:flex;gap:10px}
+.flex>*{flex:1}
+.note{font-size:11px;color:var(--sub);margin-top:10px;font-style:italic}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.panels{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>PUKARA · Tablero de Seguimiento del BID</h1>
+    <div class="sub">Proceso PROINVERSIÓN · NGBU Perú</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="corte">Fecha de corte
+    <input type="date" id="corte">
+    · Cierre <b id="cierreLbl"></b>
+  </div>
+</header>
+<div class="toolbar">
+  <button class="primary" onclick="openEdit(null)">+ Actividad</button>
+  <button onclick="openWS()">Workstreams</button>
+  <button onclick="openPers()">Personas</button>
+  <button onclick="exportJSON()">Exportar JSON</button>
+  <button onclick="document.getElementById('imp').click()">Importar JSON</button>
+  <input type="file" id="imp" accept="application/json" style="display:none" onchange="importJSON(event)">
+  <button onclick="exportCSV()">Exportar CSV</button>
+  <button class="warn" onclick="restore()">Restaurar plan original</button>
+</div>
+
+<div class="wrap">
+  <div class="kpis" id="kpis"></div>
+  <div class="panels">
+    <div class="card"><h3>Avance global</h3><div id="cAvance"></div></div>
+    <div class="card"><h3>Distribución por estado</h3><div id="cEstado"></div></div>
+    <div class="card"><h3>Carga por semana · por estado</h3><div id="cSemana"></div></div>
+  </div>
+  <div class="card" style="margin-bottom:14px"><h3>% Avance por área (frente)</h3><div id="cArea"></div></div>
+
+  <div class="filters" id="filters"></div>
+  <div class="tablecard"><div class="tbl-scroll"><table id="tabla"></table></div></div>
+  <div class="note" id="footnote"></div>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+
+<script>
+const SEED = {"personas": [{"sigla": "A.C.", "nombre": "Armando Campana", "cargo": "Business Developer Networks Perú", "area": "Desarrollo", "unidad": "NT_EEP_Desarrollo"}, {"sigla": "A.R.", "nombre": "Aaron Ramirez", "cargo": "Project Purchasing Manager", "area": "Abastecimiento", "unidad": "Logística"}, {"sigla": "A.V.", "nombre": "Ana Velasquez", "cargo": "AIFA Sr AIFA LATAM", "area": "AIFA", "unidad": "AIFA"}, {"sigla": "B.Q.", "nombre": "Braulio Quispe", "cargo": "Gestor Social y de Tierras", "area": "Predial / Social", "unidad": "NT_EEP_Desarrollo"}, {"sigla": "C.B.", "nombre": "Carmen Barrientos", "cargo": "Ingeniero PMO", "area": "PMO", "unidad": "RE_EEP_Desarrollo"}, {"sigla": "C.I.", "nombre": "Christian Infante", "cargo": "Jefe de Implementación", "area": "Implementación", "unidad": "NT_EEP_Implementación"}, {"sigla": "C.L.", "nombre": "Carlos Lozada", "cargo": "Gerente de Riesgos y Seguros", "area": "Finanzas", "unidad": "TS_EEP_Finanzas"}, {"sigla": "C.G.", "nombre": "Cristian Gabiatti", "cargo": "Head of Business Development", "area": "Desarrollo", "unidad": "NT_EEP_Desarrollo"}, {"sigla": "E.C.", "nombre": "Edwin Contreras", "cargo": "Head of Projects", "area": "Proyectos", "unidad": "RE_EEP_Desarrollo"}, {"sigla": "E.E.", "nombre": "Evelin Egusquiza", "cargo": "Analista de Gestión Territorial", "area": "Gestión Territorial", "unidad": "TG_EEP_RI"}, {"sigla": "E.H.", "nombre": "Edilberto Huamán", "cargo": "Gerente de Gestión Territorial", "area": "Predial / Social", "unidad": "TG_EEP_RI"}, {"sigla": "G.C.", "nombre": "Gabriel Cardenas", "cargo": "Gerente Legal", "area": "Legal", "unidad": "TG_EEP_Legal"}, {"sigla": "G.D.", "nombre": "Guillermo Diaz", "cargo": "Especialista Senior de Finanzas Corporativas", "area": "Finanzas", "unidad": "TG_EEP_Fi"}, {"sigla": "H.A.", "nombre": "Hayette Abkari", "cargo": "Gerente de Abastecimiento y Administración", "area": "Abastecimiento", "unidad": "TG_EEP_Fi_Logística"}, {"sigla": "H.C.", "nombre": "Homero Collas", "cargo": "Por confirmar", "area": "Ingeniería", "unidad": "Por confirmar"}, {"sigla": "J.A.", "nombre": "Jimmy Aoki", "cargo": "Managing Director Networks Perú", "area": "Dirección", "unidad": "NT_EEP_Networks"}, {"sigla": "J.E.", "nombre": "Jorge Escurra", "cargo": "Líder OPEX", "area": "Operaciones", "unidad": "EEP_Operaciones"}, {"sigla": "J.L.", "nombre": "Por confirmar", "cargo": "Por confirmar", "area": "Ingeniería", "unidad": "Por confirmar"}, {"sigla": "L.M.", "nombre": "Luis Merello", "cargo": "Ingeniero de Proyectos", "area": "Ingeniería", "unidad": "NT_EEP_Implementación"}, {"sigla": "M.G.", "nombre": "Makhiban Gengadharan", "cargo": "Especialista Senior en Obras Civiles", "area": "Ingeniería / Obras Civiles", "unidad": "RE_EEP_Desarrollo"}, {"sigla": "M.R.", "nombre": "Mariana Rodriguez", "cargo": "Asesor Legal Senior", "area": "Legal", "unidad": "TG_EEP_Legal"}, {"sigla": "M.S.", "nombre": "Mario Spelucin", "cargo": "Gerente de Finanzas Corporativas", "area": "Finanzas", "unidad": "TG_EEP_Fi"}, {"sigla": "N.M.", "nombre": "Nelson Melgarejo", "cargo": "Jefe de Compras", "area": "Abastecimiento", "unidad": "TG_EEP_Fi_Logística"}, {"sigla": "R.A.", "nombre": "Ricardo Augusto Palma", "cargo": "Ingeniero de Proyectos Junior", "area": "Ingeniería", "unidad": "NT_EEP_Desarrollo"}, {"sigla": "R.H.", "nombre": "Roxana Hinojo", "cargo": "Gerente de Medio Ambiente - Desarrollo", "area": "Medio Ambiente", "unidad": "TG_EEP_RI"}, {"sigla": "R.P.", "nombre": "Rodolfo Perez", "cargo": "Chief Operational Officer (COO)", "area": "Operaciones", "unidad": "RE_EEP_Operaciones"}, {"sigla": "S.G.", "nombre": "Saraí Gutierrez", "cargo": "Business Developer Networks Perú", "area": "Desarrollo", "unidad": "NT_EEP_Desarrollo"}, {"sigla": "V.Y.", "nombre": "Victor Yanque", "cargo": "Jefe de Operación", "area": "Operaciones", "unidad": "NT_EEP_Ope"}, {"sigla": "Desarrollo", "nombre": "Desarrollo (equipo)", "cargo": "Equipo de Desarrollo", "area": "Desarrollo", "unidad": "NT_EEP_Desarrollo"}, {"sigla": "Logística", "nombre": "Logística (equipo)", "cargo": "Equipo de Logística", "area": "Abastecimiento", "unidad": "TG_EEP_Fi_Logística"}, {"sigla": "Todos", "nombre": "Todo el equipo", "cargo": "Todo el equipo PUKARA", "area": "Transversal", "unidad": "—"}], "frentes": [{"n": 1, "nombre": "Proceso Proinversión", "lider": "Desarrollo", "color": "#00A199"}, {"n": 2, "nombre": "Aprobaciones Internas", "lider": "Desarrollo", "color": "#0B2E5C"}, {"n": 3, "nombre": "Suministro", "lider": "H.A.", "color": "#3E6A99"}, {"n": 4, "nombre": "Gestión de Obra", "lider": "C.I. / E.C.", "color": "#0082C3"}, {"n": 5, "nombre": "Socios Estratégicos", "lider": "Varios", "color": "#00736E"}, {"n": 6, "nombre": "CAPEX", "lider": "C.I. / L.M.", "color": "#002B5C"}, {"n": 7, "nombre": "Refuerzos", "lider": "A.C.", "color": "#5A8CB8"}, {"n": 8, "nombre": "OPEX", "lider": "J.E. / R.P.", "color": "#143D6B"}, {"n": 9, "nombre": "AIFA", "lider": "A.V. / M.S.", "color": "#15A39A"}, {"n": 10, "nombre": "Ingeniería Desarrollo", "lider": "C.I. / E.C.", "color": "#4E79A8"}, {"n": 11, "nombre": "Medio Ambiente", "lider": "R.H.", "color": "#0F9D6B"}, {"n": 12, "nombre": "Predial / Social", "lider": "E.H.", "color": "#2E6E8E"}, {"n": 13, "nombre": "Finanzas", "lider": "— (sin líder)", "color": "#1C7293"}], "estados": [{"nombre": "Hecho", "color": "#0F9D6B", "peso": 100}, {"nombre": "En curso", "color": "#0082C3", "peso": 50}, {"nombre": "En riesgo", "color": "#D6452B", "peso": 25}, {"nombre": "Pendiente", "color": "#94A3B8", "peso": 0}], "actividades": [{"frenteN": 1, "actividad": "Sobre 1", "resp": "Desarrollo", "sop": "", "plazo": "2026-06-25"}, {"frenteN": 1, "actividad": "Sobre 2 — Presentación del BID", "resp": "Desarrollo", "sop": "", "plazo": "2026-06-30"}, {"frenteN": 2, "actividad": "Risk Matrix Final", "resp": "A.C.", "sop": "Todos", "plazo": "2026-06-11"}, {"frenteN": 2, "actividad": "Finalizar PtB", "resp": "A.C.", "sop": "Todos", "plazo": "2026-06-12"}, {"frenteN": 2, "actividad": "Second Regard — Financiero / Legal", "resp": "A.V.", "sop": "A.C./G.C.", "plazo": "2026-06-16"}, {"frenteN": 2, "actividad": "Second Regard — Impl. / O&M / Supply", "resp": "C.I.", "sop": "L.M./E.C./A.C./R.P./H.A.", "plazo": "2026-06-16"}, {"frenteN": 2, "actividad": "Investment Committee — Bid Approval", "resp": "J.A./M.G.", "sop": "C.G./A.V.", "plazo": "2026-06-29"}, {"frenteN": 3, "actividad": "2ª ronda de ofertas — equipos principales", "resp": "L.M.", "sop": "", "plazo": "2026-06-12"}, {"frenteN": 3, "actividad": "Evaluación técnica de la oferta final", "resp": "Logística", "sop": "", "plazo": "2026-06-19"}, {"frenteN": 3, "actividad": "Estrategia pre-acuerdos y negociar", "resp": "C.G.", "sop": "C.I./L.M./R.A./G.C./H.A.", "plazo": "2026-06-22"}, {"frenteN": 4, "actividad": "Cronograma Implantación e Interfaces", "resp": "E.C.", "sop": "", "plazo": "2026-06-22"}, {"frenteN": 4, "actividad": "Cotizar control obra subestaciones", "resp": "C.I.", "sop": "", "plazo": "2026-06-17"}, {"frenteN": 4, "actividad": "Cotizar Supervisión OSINERGMIN", "resp": "C.I.", "sop": "", "plazo": "2026-06-17"}, {"frenteN": 5, "actividad": "General — Definición de la estrategia final", "resp": "C.G./C.I./A.C.", "sop": "", "plazo": "2026-06-08"}, {"frenteN": 5, "actividad": "Siemens (SE): Precios", "resp": "N.M.", "sop": "A.C.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Siemens (SE): Evaluación", "resp": "C.I.", "sop": "", "plazo": "2026-06-17"}, {"frenteN": 5, "actividad": "Siemens (SE): Negociación", "resp": "N.M.", "sop": "A.C./G.C./C.I.", "plazo": "2026-06-18"}, {"frenteN": 5, "actividad": "Siemens (SE): Cronograma", "resp": "C.I.", "sop": "C.B.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Fertecnica (LT): Precios", "resp": "A.R.", "sop": "A.C.", "plazo": "2026-06-10"}, {"frenteN": 5, "actividad": "Fertecnica (LT): Evaluación", "resp": "C.I.", "sop": "", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Fertecnica (LT): Salud Financ. / Garantía", "resp": "A.R.", "sop": "G.D./A.C.", "plazo": "2026-06-11"}, {"frenteN": 5, "actividad": "Fertecnica (LT): Negociación", "resp": "A.R.", "sop": "A.C./G.C./C.I.", "plazo": "2026-06-18"}, {"frenteN": 5, "actividad": "Fertecnica (LT): Cronograma", "resp": "C.I.", "sop": "C.B.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Inprecont (LT): Precios", "resp": "N.M.", "sop": "S.G.", "plazo": "2026-06-08"}, {"frenteN": 5, "actividad": "Inprecont (LT): Evaluación", "resp": "C.I.", "sop": "", "plazo": "2026-06-10"}, {"frenteN": 5, "actividad": "Inprecont (LT): Negociación", "resp": "N.M.", "sop": "S.G./G.C./C.I.", "plazo": "2026-06-18"}, {"frenteN": 5, "actividad": "Inprecont (LT): Cronograma", "resp": "C.I.", "sop": "C.B.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "COX (SE): Precios", "resp": "S.G.", "sop": "N.M.", "plazo": "2026-06-10"}, {"frenteN": 5, "actividad": "COX (SE): Evaluación", "resp": "C.I.", "sop": "", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "COX (SE): Salud Financ.", "resp": "S.G.", "sop": "G.D./A.R.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "COX (SE): Negociación", "resp": "A.C.", "sop": "G.C./C.I./N.M.", "plazo": "2026-06-17"}, {"frenteN": 5, "actividad": "COX (SE): Cronograma", "resp": "C.I.", "sop": "", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Unitelec (LT aérea): Precios", "resp": "A.C.", "sop": "A.R.", "plazo": "2026-06-09"}, {"frenteN": 5, "actividad": "Unitelec (LT aérea): Evaluación", "resp": "C.I.", "sop": "", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Unitelec (LT aérea): Salud Financ.", "resp": "S.G.", "sop": "G.D./A.R.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Unitelec (LT aérea): Negociación", "resp": "S.G.", "sop": "G.C./C.I./A.R.", "plazo": "2026-06-16"}, {"frenteN": 5, "actividad": "Unitelec (LT aérea): Cronograma", "resp": "C.I.", "sop": "C.B.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Unitelec (LT subt.): Solución HDD", "resp": "C.I.", "sop": "", "plazo": "2026-06-10"}, {"frenteN": 5, "actividad": "Unitelec (LT subt.): Precios", "resp": "A.C.", "sop": "A.R.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Unitelec (LT subt.): Evaluación", "resp": "C.I.", "sop": "", "plazo": "2026-06-16"}, {"frenteN": 5, "actividad": "Unitelec (LT subt.): Salud Financ.", "resp": "A.C.", "sop": "G.D./A.R.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "Unitelec (LT subt.): Negociación", "resp": "A.C.", "sop": "G.C./C.I./A.R.", "plazo": "2026-06-17"}, {"frenteN": 5, "actividad": "Unitelec (LT subt.): Cronograma", "resp": "C.I.", "sop": "C.B.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "COX (LT): Precios", "resp": "C.I.", "sop": "N.M.", "plazo": "2026-06-12"}, {"frenteN": 5, "actividad": "COX (LT): Evaluación", "resp": "C.I.", "sop": "", "plazo": "2026-06-16"}, {"frenteN": 5, "actividad": "COX (LT): Negociación", "resp": "S.G.", "sop": "G.C./C.I./N.M.", "plazo": "2026-06-17"}, {"frenteN": 5, "actividad": "COX (LT): Cronograma", "resp": "C.I.", "sop": "", "plazo": "2026-06-16"}, {"frenteN": 5, "actividad": "Compartir comentarios líderes — Alpamayo", "resp": "N.M.", "sop": "", "plazo": "2026-06-08"}, {"frenteN": 6, "actividad": "WB CAPEX — Situación actual / Estructura", "resp": "S.G.", "sop": "", "plazo": "2026-06-06"}, {"frenteN": 6, "actividad": "WB CAPEX — Precios Finales", "resp": "Desarrollo", "sop": "", "plazo": "2026-06-22"}, {"frenteN": 6, "actividad": "Optimización Final WB CAPEX", "resp": "Todos", "sop": "", "plazo": "2026-06-28"}, {"frenteN": 6, "actividad": "Costos de los Seguros y alcances", "resp": "S.G.", "sop": "", "plazo": "2026-06-11"}, {"frenteN": 6, "actividad": "Definición contingencia ubicación SE", "resp": "C.I.", "sop": "", "plazo": ""}, {"frenteN": 6, "actividad": "Precios Commodities / FX", "resp": "A.V./S.G.", "sop": "", "plazo": ""}, {"frenteN": 7, "actividad": "Refuerzos — CAPEX", "resp": "L.M.", "sop": "", "plazo": "2026-06-15"}, {"frenteN": 7, "actividad": "Refuerzos — Ingresos / Costos", "resp": "S.G.", "sop": "", "plazo": "2026-06-15"}, {"frenteN": 8, "actividad": "Preparación del WB OPEX", "resp": "V.Y./L.M./E.C.", "sop": "", "plazo": "2026-06-12"}, {"frenteN": 8, "actividad": "Optimización Final WB OPEX", "resp": "R.P.", "sop": "", "plazo": "2026-06-29"}, {"frenteN": 9, "actividad": "Escenarios CIT/Board y eval. estrategia Bid", "resp": "A.V.", "sop": "", "plazo": ""}, {"frenteN": 9, "actividad": "Métrica de sensibilidades de la oferta", "resp": "A.V.", "sop": "", "plazo": ""}, {"frenteN": 9, "actividad": "Optimización de costos de deuda", "resp": "M.S.", "sop": "", "plazo": ""}, {"frenteN": 10, "actividad": "Planos de accesos — estudio de rutas", "resp": "E.C.", "sop": "J.L./H.C.", "plazo": "2026-06-15"}, {"frenteN": 10, "actividad": "Optim. solución Palian (subterráneo)", "resp": "E.C.", "sop": "", "plazo": "2026-06-10"}, {"frenteN": 10, "actividad": "Ubicación base Muyurina y contingencia", "resp": "E.C.", "sop": "", "plazo": "2026-06-15"}, {"frenteN": 11, "actividad": "CAPEX y OPEX (incl. buffer accesos)", "resp": "R.H.", "sop": "", "plazo": "2026-06-12"}, {"frenteN": 11, "actividad": "Supuesto terreno p/ reforestación", "resp": "R.H.", "sop": "", "plazo": "2026-06-15"}, {"frenteN": 11, "actividad": "Optimización final CAPEX y OPEX", "resp": "S.G.", "sop": "", "plazo": "2026-06-17"}, {"frenteN": 11, "actividad": "Retomar instrumento ambiental — IGA", "resp": "R.H.", "sop": "", "plazo": "2026-06-15"}, {"frenteN": 12, "actividad": "Costo imposición (contingencias)", "resp": "E.H.", "sop": "", "plazo": "2026-06-12"}, {"frenteN": 12, "actividad": "Ajustes Estrategia Servidumbres PtB", "resp": "B.Q.", "sop": "", "plazo": "2026-06-12"}, {"frenteN": 12, "actividad": "Cronograma ejec. (Business Consultant)", "resp": "C.I./G.C.", "sop": "", "plazo": "2026-06-15"}, {"frenteN": 12, "actividad": "Optimización final del CAPEX y OPEX", "resp": "S.G.", "sop": "", "plazo": "2026-06-26"}, {"frenteN": 13, "actividad": "Estructuración de funding", "resp": "A.V.", "sop": "M.S.", "plazo": "2026-06-22"}, {"frenteN": 13, "actividad": "Garantía del Bid", "resp": "M.S.", "sop": "", "plazo": "2026-06-22"}], "corte": "2026-06-09", "cierre": "2026-06-30"};
+const ESTADOS = SEED.estados;            // [{nombre,color,peso}]
+const ESTC = {}; ESTADOS.forEach(e=>ESTC[e.nombre]=e.color);
+const ESTW = {}; ESTADOS.forEach(e=>ESTW[e.nombre]=e.peso);
+const ESTORDER = ESTADOS.map(e=>e.nombre);
+const ENRIESGO = new Set(["Estrategia pre-acuerdos y negociar","Optimización Final WB CAPEX","Garantía del Bid"]);
+const KEY="pukara_state_v3"; let mem=null;
+
+function semOf(p){ if(!p) return "Sin fecha"; const d=+p.slice(8,10); return d<=8?"S1":d<=15?"S2":d<=22?"S3":"S4"; }
+function estEj(p){ if(!p) return ["Pendiente",0]; const d=+p.slice(8,10); if(d<=9) return ["Hecho",100]; if(d<=16) return ["En curso",50]; return ["Pendiente",0]; }
+function toks(s){ return s? s.split("/").map(x=>x.trim()).filter(Boolean):[]; }
+function liderToks(n){ const f=frenteBy(n); if(!f) return []; if(f.lider=="Varios"||f.lider.indexOf("sin líder")>=0) return []; return toks(f.lider.replace(/\s/g,"")); }
+function frenteBy(n){ return S.frentes.find(f=>f.n==n); }
+function persBy(s){ return S.personas.find(p=>p.sigla==s); }
+function nombreOf(s){ const p=persBy(s); return p?p.nombre:s; }
+function infoOf(s){ const p=persBy(s); return p?(p.nombre+" — "+p.cargo+" · "+p.area):s; }
+function involucrados(t){ const set=new Set(); toks(t.resp).forEach(x=>set.add(x)); toks(t.sop).forEach(x=>set.add(x)); liderToks(t.frenteN).forEach(x=>set.add(x)); return set; }
+function venc(t){ return t.plazo && t.estado!="Hecho" && t.plazo < corte; }
+
+let S, corte=SEED.corte;
+
+function freshTasks(){
+  return SEED.actividades.map((a,i)=>{
+    let [est,pct]=estEj(a.plazo); if(ENRIESGO.has(a.actividad)){est="En riesgo";pct=25;}
+    return {id:"A"+String(i+1).padStart(2,"0"),frenteN:a.frenteN,actividad:a.actividad,
+            resp:a.resp,sop:a.sop,plazo:a.plazo||"",estado:est,pct:pct,notas:""};
+  });
+}
+function freshState(){ return {personas:JSON.parse(JSON.stringify(SEED.personas)),
+                               frentes:JSON.parse(JSON.stringify(SEED.frentes)),
+                               tasks:freshTasks()}; }
+
+async function save(){ try{ await window.storage.set(KEY, JSON.stringify({S,corte})); }catch(e){ mem=JSON.stringify({S,corte}); } }
+async function load(){ try{ const r=await window.storage.get(KEY); if(r&&r.value) return JSON.parse(r.value);}catch(e){ if(mem) return JSON.parse(mem);} return null; }
+
+let flt={frente:"",semana:"",estado:"",resp:"",area:"",cargo:"",q:""};
+
+function passes(t){
+  if(flt.frente && t.frenteN!=flt.frente) return false;
+  if(flt.semana && semOf(t.plazo)!=flt.semana) return false;
+  if(flt.estado && t.estado!=flt.estado) return false;
+  if(flt.resp){ if(!involucrados(t).has(flt.resp)) return false; }
+  if(flt.area){ const ok=[...involucrados(t)].some(s=>{const p=persBy(s);return p&&p.area==flt.area;}); if(!ok) return false; }
+  if(flt.cargo){ const ok=[...involucrados(t)].some(s=>{const p=persBy(s);return p&&p.cargo==flt.cargo;}); if(!ok) return false; }
+  if(flt.q){ const q=flt.q.toLowerCase(); const hay=(t.actividad+" "+t.resp+" "+t.sop+" "+(frenteBy(t.frenteN)||{}).nombre).toLowerCase(); if(hay.indexOf(q)<0) return false; }
+  return true;
+}
+function shown(){ return S.tasks.filter(passes); }
+
+/* ---------- SORT ---------- */
+let sortKey="plazo", sortDir="asc";
+const SEMORD={S1:1,S2:2,S3:3,S4:4,"Sin fecha":5};
+function sortVal(t,k){
+  if(k=="frenteN") return t.frenteN;
+  if(k=="actividad") return (t.actividad||"").toLowerCase();
+  if(k=="resp") return (t.resp||"").toLowerCase();
+  if(k=="semana") return SEMORD[semOf(t.plazo)]||9;
+  if(k=="estado"){ const i=ESTORDER.indexOf(t.estado); return i<0?9:i; }
+  if(k=="pct") return +t.pct||0;
+  return "";
+}
+function cmp(a,b){
+  if(sortKey=="plazo"){ const pa=a.plazo,pb=b.plazo;
+    if(!pa&&!pb)return 0; if(!pa)return 1; if(!pb)return -1;   // sin fecha al final
+    return sortDir=="asc"?(pa<pb?-1:pa>pb?1:0):(pa<pb?1:pa>pb?-1:0); }
+  const va=sortVal(a,sortKey), vb=sortVal(b,sortKey);
+  const r = va<vb?-1: va>vb?1:0;
+  return sortDir=="asc"? r : -r;
+}
+function sortBy(k){ if(sortKey==k){ sortDir=(sortDir=="asc"?"desc":"asc"); } else { sortKey=k; sortDir="asc"; } renderTable(); }
+function ar(k){ return sortKey==k ? `<span class="ar">${sortDir=="asc"?"▲":"▼"}</span>` : `<span class="ar" style="opacity:.3">↕</span>`; }
+
+/* ---------- RENDER ---------- */
+function render(){ renderKPIs(); renderCharts(); renderFilters(); renderTable(); renderFoot(); save(); }
+
+function renderKPIs(){
+  const t=shown(); const n=t.length;
+  const avg=n?Math.round(t.reduce((a,x)=>a+ (+x.pct||0),0)/n):0;
+  const cnt=e=>t.filter(x=>x.estado==e).length;
+  const vc=t.filter(venc).length;
+  const dias=Math.max(0, Math.round((new Date(SEED.cierre)-new Date(corte))/86400000));
+  const K=[["Días al cierre",dias,"var(--navy)"],["Actividades",n,"var(--slate)"],
+    ["Avance global",avg+"%","var(--teal)"],["Hecho",cnt("Hecho"),"var(--green)"],
+    ["En curso",cnt("En curso"),"var(--blue)"],["En riesgo",cnt("En riesgo"),"var(--risk)"],
+    ["Vencidas",vc,"var(--warn)"]];
+  document.getElementById("kpis").innerHTML=K.map(k=>
+    `<div class="kpi" style="border-top-color:${k[2]}"><div class="v" style="color:${k[2]}">${k[1]}</div><div class="l">${k[0]}</div></div>`).join("");
+}
+
+function renderCharts(){
+  const t=shown(); const n=t.length||1;
+  const avg=Math.round(t.reduce((a,x)=>a+(+x.pct||0),0)/(t.length||1));
+  // donut
+  document.getElementById("cAvance").innerHTML=
+    `<div class="donut-wrap"><div class="donut" style="background:conic-gradient(var(--teal) 0 ${avg}%, #E4ECF3 ${avg}% 100%)">
+      <div class="hole"><b>${avg}%</b><span>avance</span></div></div>
+      <div class="legend">
+        <div><i style="background:var(--teal)"></i>Avance ${avg}%</div>
+        <div><i style="background:#E4ECF3"></i>Restante ${100-avg}%</div>
+        <div class="small" style="margin-top:6px">${t.length} actividad(es) en vista</div>
+      </div></div>`;
+  // estado bars
+  let eh="";
+  ESTORDER.forEach(e=>{ const c=t.filter(x=>x.estado==e).length; const w=Math.round(c/n*100);
+    eh+=`<div class="bar-row"><div class="lab">${e}</div><div class="track"><div class="seg" style="width:${w}%;background:${ESTC[e]}"></div></div><div class="num">${c}</div></div>`; });
+  document.getElementById("cEstado").innerHTML=eh;
+  // semana stacked
+  const wks=["S1","S2","S3","S4","Sin fecha"]; let sh="";
+  wks.forEach(w=>{ const ws=t.filter(x=>semOf(x.plazo)==w); const tot=ws.length;
+    let segs=ESTORDER.map(e=>{const c=ws.filter(x=>x.estado==e).length; return c?`<div class="seg" title="${w} · ${e}: ${c}" style="width:${c/(tot||1)*100}%;background:${ESTC[e]}"></div>`:"";}).join("");
+    sh+=`<div class="bar-row"><div class="lab">${w}</div><div class="track">${segs}</div><div class="num">${tot}</div></div>`; });
+  sh+=`<div class="legend" style="margin-top:8px">`+ESTORDER.map(e=>`<span style="margin-right:12px"><i style="background:${ESTC[e]}"></i>${e}</span>`).join("")+`</div>`;
+  document.getElementById("cSemana").innerHTML=sh;
+  // area
+  let ah="";
+  S.frentes.forEach(f=>{ const fr=t.filter(x=>x.frenteN==f.n); if(!fr.length && flt.frente) return;
+    const a=fr.length?Math.round(fr.reduce((s,x)=>s+(+x.pct||0),0)/fr.length):0;
+    ah+=`<div class="bar-row"><div class="lab2">${f.n}·${f.nombre}</div><div class="track"><div class="seg" style="width:${a}%;background:${f.color}"></div></div><div class="num">${a}%</div></div>`; });
+  document.getElementById("cArea").innerHTML=ah;
+}
+
+function opt(v,txt,sel){ return `<option value="${v}"${v==sel?" selected":""}>${txt}</option>`; }
+function renderFilters(){
+  const areas=[...new Set(S.personas.map(p=>p.area))].sort();
+  const cargos=[...new Set(S.personas.map(p=>p.cargo))].sort();
+  const ppl=S.personas.filter(p=>!["Desarrollo","Logística","Todos"].includes(p.sigla));
+  const h=`
+   <label>Frente<select id="fF"><option value="">Todos</option>${S.frentes.map(f=>opt(f.n,f.n+"·"+f.nombre,flt.frente)).join("")}</select></label>
+   <label>Semana<select id="fS"><option value="">Todas</option>${["S1","S2","S3","S4","Sin fecha"].map(w=>opt(w,w,flt.semana)).join("")}</select></label>
+   <label>Estado<select id="fE"><option value="">Todos</option>${ESTORDER.map(e=>opt(e,e,flt.estado)).join("")}</select></label>
+   <label>Responsable / persona<select id="fR"><option value="">Todas</option>${ppl.map(p=>opt(p.sigla,p.sigla+" — "+p.nombre,flt.resp)).join("")}</select></label>
+   <label>Área (de la persona)<select id="fA"><option value="">Todas</option>${areas.map(a=>opt(a,a,flt.area)).join("")}</select></label>
+   <label>Cargo<select id="fC"><option value="">Todos</option>${cargos.map(c=>opt(c,c,flt.cargo)).join("")}</select></label>
+   <label>Buscar<input type="text" id="fQ" value="${flt.q}" placeholder="texto..."></label>
+   <label style="justify-content:flex-end"><span>&nbsp;</span><button onclick="clearF()">Limpiar</button></label>`;
+  document.getElementById("filters").innerHTML=h;
+  fF.onchange=e=>{flt.frente=e.target.value;render()};
+  fS.onchange=e=>{flt.semana=e.target.value;render()};
+  fE.onchange=e=>{flt.estado=e.target.value;render()};
+  fR.onchange=e=>{flt.resp=e.target.value;render()};
+  fA.onchange=e=>{flt.area=e.target.value;render()};
+  fC.onchange=e=>{flt.cargo=e.target.value;render()};
+  fQ.oninput=e=>{flt.q=e.target.value; renderTable();};
+}
+function clearF(){ flt={frente:"",semana:"",estado:"",resp:"",area:"",cargo:"",q:""}; render(); }
+
+function chips(str,cls){ return toks(str).map(s=>`<span class="chip ${cls||''}" title="${infoOf(s)}">${s}</span>`).join(""); }
+function renderTable(){
+  const t=shown().slice().sort(cmp);
+  let h=`<thead><tr>
+   <th class="sortable" onclick="sortBy('frenteN')">Frente ${ar('frenteN')}</th>
+   <th class="sortable" onclick="sortBy('actividad')">Actividad ${ar('actividad')}</th>
+   <th class="sortable" onclick="sortBy('resp')">Responsable ${ar('resp')}</th>
+   <th>Soporte</th><th>Líder</th>
+   <th class="sortable" onclick="sortBy('plazo')">Plazo ${ar('plazo')}</th>
+   <th class="sortable" onclick="sortBy('semana')">Sem. ${ar('semana')}</th>
+   <th class="sortable" onclick="sortBy('estado')">Estado ${ar('estado')}</th>
+   <th class="sortable" onclick="sortBy('pct')">% Av. ${ar('pct')}</th>
+   <th>Venc.</th><th>Notas</th><th></th></tr></thead><tbody>`;
+  if(!t.length) h+=`<tr><td colspan="12" style="text-align:center;color:var(--sub);padding:18px">Sin actividades para los filtros aplicados.</td></tr>`;
+  t.forEach(x=>{ const f=frenteBy(x.frenteN)||{nombre:"",color:"#ccc",lider:""};
+    h+=`<tr>
+     <td><span class="fr-chip"><span class="fr-dot" style="background:${f.color}"></span>${x.frenteN}·${f.nombre}</span></td>
+     <td>${x.actividad}</td>
+     <td>${chips(x.resp)||'<span class="small">—</span>'}</td>
+     <td>${chips(x.sop,'sop')||'<span class="small">—</span>'}</td>
+     <td class="small">${f.lider||"—"}</td>
+     <td>${x.plazo? x.plazo.slice(8,10)+"/"+x.plazo.slice(5,7):'<span class="small">—</span>'}</td>
+     <td class="small">${semOf(x.plazo)}</td>
+     <td><select class="sel-estado" style="background:${ESTC[x.estado]}" onchange="setEstado('${x.id}',this.value)">${ESTORDER.map(e=>`<option ${e==x.estado?'selected':''}>${e}</option>`).join("")}</select></td>
+     <td><input class="pct" type="number" min="0" max="100" value="${x.pct}" onchange="setPct('${x.id}',this.value)"></td>
+     <td>${venc(x)?'<span class="venc">VENCIDA</span>':''}</td>
+     <td><input class="notas" value="${(x.notas||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="setNota('${x.id}',this.value)"></td>
+     <td style="white-space:nowrap"><button class="rowbtn" title="Editar" onclick="openEdit('${x.id}')">✎</button><button class="rowbtn del" title="Eliminar" onclick="delTask('${x.id}')">✕</button></td>
+    </tr>`; });
+  h+="</tbody>";
+  document.getElementById("tabla").innerHTML=h;
+}
+function renderFoot(){
+  document.getElementById("footnote").textContent=
+   "Estado y % de avance son de EJEMPLO y editables. Haz clic en los encabezados (Plazo, Estado, % Av., Frente…) para ordenar ascendente/descendente. Edita responsables/soporte con ✎, agrega o elimina actividades y workstreams, y administra personas (siglas, cargo, área). Los cambios se guardan automáticamente. Filtra por persona/área/cargo para hacer seguimiento.";
+}
+
+/* ---------- EDITS ---------- */
+function setEstado(id,v){ const t=S.tasks.find(x=>x.id==id); t.estado=v; if(v=="Hecho")t.pct=100; render(); }
+function setPct(id,v){ const t=S.tasks.find(x=>x.id==id); t.pct=Math.max(0,Math.min(100,+v||0)); render(); }
+function setNota(id,v){ S.tasks.find(x=>x.id==id).notas=v; save(); }
+function delTask(id){ const t=S.tasks.find(x=>x.id==id); if(confirm("¿Eliminar la actividad «"+t.actividad+"»?")){ S.tasks=S.tasks.filter(x=>x.id!=id); render(); } }
+
+const MB=document.getElementById("modalBg"), MX=document.getElementById("modalBox");
+function closeModal(){ MB.style.display="none"; }
+MB.addEventListener("click",e=>{ if(e.target===MB) closeModal(); });
+
+function personCheckboxes(name,selected){
+  const sel=new Set(toks(selected));
+  return S.personas.map(p=>`<label><input type="checkbox" name="${name}" value="${p.sigla}" ${sel.has(p.sigla)?'checked':''}> ${p.sigla} <span class="small">${p.nombre.split(' ')[0]}</span></label>`).join("");
+}
+function getChecks(name){ return [...MX.querySelectorAll(`input[name="${name}"]:checked`)].map(c=>c.value).join("/"); }
+
+function openEdit(id){
+  const t=id?S.tasks.find(x=>x.id==id):null;
+  MX.innerHTML=`<h2>${id?'Editar actividad':'Nueva actividad'}</h2>
+   <div class="fld"><label>Frente (workstream)</label><select id="eFr">${S.frentes.map(f=>`<option value="${f.n}" ${t&&t.frenteN==f.n?'selected':''}>${f.n}·${f.nombre}</option>`).join("")}</select></div>
+   <div class="fld"><label>Actividad</label><input id="eAct" value="${t?t.actividad.replace(/"/g,'&quot;'):''}"></div>
+   <div class="flex">
+     <div class="fld"><label>Plazo</label><input type="date" id="ePz" value="${t?t.plazo:''}"></div>
+     <div class="fld"><label>Estado</label><select id="eEst">${ESTORDER.map(e=>`<option ${t&&t.estado==e?'selected':''}>${e}</option>`).join("")}</select></div>
+     <div class="fld"><label>% Avance</label><input type="number" id="ePct" min="0" max="100" value="${t?t.pct:0}"></div>
+   </div>
+   <div class="fld"><label>Responsable(s) — siglas</label><div class="checks">${personCheckboxes('eResp',t?t.resp:'')}</div></div>
+   <div class="fld"><label>Soporte / apoyo — siglas</label><div class="checks">${personCheckboxes('eSop',t?t.sop:'')}</div></div>
+   <div class="modal-actions"><button onclick="closeModal()">Cancelar</button><button class="primary" onclick="saveEdit('${id||''}')">Guardar</button></div>`;
+  MB.style.display="flex";
+}
+function saveEdit(id){
+  const fr=+document.getElementById("eFr").value;
+  const act=document.getElementById("eAct").value.trim(); if(!act){alert("Escribe la actividad");return;}
+  const pz=document.getElementById("ePz").value;
+  const est=document.getElementById("eEst").value;
+  const pct=Math.max(0,Math.min(100,+document.getElementById("ePct").value||0));
+  const resp=getChecks("eResp"), sop=getChecks("eSop");
+  if(id){ const t=S.tasks.find(x=>x.id==id); Object.assign(t,{frenteN:fr,actividad:act,plazo:pz,estado:est,pct:pct,resp:resp,sop:sop}); }
+  else{ const mx=Math.max(0,...S.tasks.map(x=>+x.id.slice(1))); S.tasks.push({id:"A"+String(mx+1).padStart(2,"0"),frenteN:fr,actividad:act,plazo:pz,estado:est,pct:pct,resp:resp,sop:sop,notas:""}); }
+  closeModal(); render();
+}
+
+/* ---------- WORKSTREAMS ---------- */
+function openWS(){
+  MX.innerHTML=`<h2>Workstreams (frentes)</h2>
+   <table class="mtable"><thead><tr><th>#</th><th>Nombre</th><th>Líder</th><th>Color</th><th>Act.</th><th></th></tr></thead><tbody>
+   ${S.frentes.map(f=>{const c=S.tasks.filter(t=>t.frenteN==f.n).length; return `<tr>
+     <td style="width:38px"><input value="${f.n}" onchange="wsField(${f.n},'n',this.value)"></td>
+     <td><input value="${f.nombre.replace(/"/g,'&quot;')}" onchange="wsField(${f.n},'nombre',this.value)"></td>
+     <td><input value="${f.lider.replace(/"/g,'&quot;')}" onchange="wsField(${f.n},'lider',this.value)"></td>
+     <td style="width:48px"><input type="color" value="${f.color}" onchange="wsField(${f.n},'color',this.value)" style="padding:0;height:28px"></td>
+     <td class="small" style="text-align:center">${c}</td>
+     <td><button class="rowbtn del" title="Eliminar" onclick="wsDel(${f.n})">✕</button></td></tr>`;}).join("")}
+   </tbody></table>
+   <div class="fld" style="margin-top:14px"><label>Agregar workstream — nombre</label>
+     <div class="flex"><input id="wsNom" placeholder="Nombre del frente">
+       <input id="wsLid" placeholder="Líder (siglas o nombre)"><input type="color" id="wsCol" value="#0082C3" style="flex:0 0 48px;padding:0;height:36px"></div></div>
+   <div class="modal-actions"><button onclick="closeModal()">Cerrar</button><button class="primary" onclick="wsAdd()">Agregar workstream</button></div>
+   <div class="note">Eliminar un workstream borra también sus actividades. El líder puede ser una o varias siglas (p. ej. «C.I. / E.C.») o «— (sin líder)».</div>`;
+  MB.style.display="flex";
+}
+function wsField(n,k,v){ const f=frenteBy(n); if(k=='n'){ const nn=+v; if(nn&&nn!=n&&!frenteBy(nn)){ S.tasks.forEach(t=>{if(t.frenteN==n)t.frenteN=nn}); f.n=nn; } } else f[k]=v; render(); openWS(); }
+function wsDel(n){ const c=S.tasks.filter(t=>t.frenteN==n).length; if(confirm("¿Eliminar el workstream y sus "+c+" actividad(es)?")){ S.frentes=S.frentes.filter(f=>f.n!=n); S.tasks=S.tasks.filter(t=>t.frenteN!=n); render(); openWS(); } }
+function wsAdd(){ const nom=document.getElementById("wsNom").value.trim(); if(!nom){alert("Escribe el nombre");return;}
+  const lid=document.getElementById("wsLid").value.trim()||"— (sin líder)"; const col=document.getElementById("wsCol").value;
+  const mx=Math.max(0,...S.frentes.map(f=>+f.n)); S.frentes.push({n:mx+1,nombre:nom,lider:lid,color:col}); render(); openWS(); }
+
+/* ---------- PERSONAS ---------- */
+function openPers(){
+  MX.innerHTML=`<h2>Personas (siglas · cargo · área)</h2>
+   <div style="max-height:340px;overflow:auto"><table class="mtable"><thead><tr><th>Sigla</th><th>Nombre</th><th>Cargo</th><th>Área</th><th></th></tr></thead><tbody>
+   ${S.personas.map((p,i)=>`<tr>
+     <td style="width:60px"><input value="${p.sigla}" onchange="pField(${i},'sigla',this.value)"></td>
+     <td><input value="${p.nombre.replace(/"/g,'&quot;')}" onchange="pField(${i},'nombre',this.value)"></td>
+     <td><input value="${p.cargo.replace(/"/g,'&quot;')}" onchange="pField(${i},'cargo',this.value)"></td>
+     <td><input value="${p.area.replace(/"/g,'&quot;')}" onchange="pField(${i},'area',this.value)"></td>
+     <td><button class="rowbtn del" onclick="pDel(${i})">✕</button></td></tr>`).join("")}
+   </tbody></table></div>
+   <div class="fld" style="margin-top:12px"><label>Agregar persona</label>
+     <div class="flex"><input id="pSig" placeholder="Sigla (A.B.)"><input id="pNom" placeholder="Nombre"></div>
+     <div class="flex" style="margin-top:6px"><input id="pCar" placeholder="Cargo"><input id="pAre" placeholder="Área"></div></div>
+   <div class="modal-actions"><button onclick="closeModal()">Cerrar</button><button class="primary" onclick="pAdd()">Agregar persona</button></div>
+   <div class="note">Las siglas/cargos/áreas alimentan los chips, los tooltips y los filtros por persona/área/cargo.</div>`;
+  MB.style.display="flex";
+}
+function pField(i,k,v){ S.personas[i][k]=v; save(); if(k=='area'||k=='cargo'||k=='sigla') renderFilters(); renderTable(); }
+function pDel(i){ if(confirm("¿Eliminar a "+S.personas[i].nombre+"? (no borra actividades)")){ S.personas.splice(i,1); render(); openPers(); } }
+function pAdd(){ const s=document.getElementById("pSig").value.trim(); const n=document.getElementById("pNom").value.trim();
+  if(!s){alert("Escribe la sigla");return;} if(persBy(s)){alert("Esa sigla ya existe");return;}
+  S.personas.push({sigla:s,nombre:n||s,cargo:document.getElementById("pCar").value.trim()||"Por confirmar",area:document.getElementById("pAre").value.trim()||"Por confirmar",unidad:""});
+  render(); openPers(); }
+
+/* ---------- IMPORT / EXPORT ---------- */
+function dl(name,txt,type){ const b=new Blob([txt],{type:type}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u); }
+function exportJSON(){ dl("PUKARA_seguimiento.json",JSON.stringify({S,corte},null,2),"application/json"); }
+function importJSON(ev){ const f=ev.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ const o=JSON.parse(r.result); if(o.S){S=o.S; if(o.corte)corte=o.corte;} else S=o; document.getElementById("corte").value=corte; render(); }catch(e){alert("Archivo inválido");} }; r.readAsText(f); }
+function exportCSV(){
+  const head=["ID","FrenteN","Frente","Actividad","Responsable","Soporte","Lider","Plazo","Semana","Estado","PctAvance","Vencida","Notas"];
+  const rows=S.tasks.map(t=>{const f=frenteBy(t.frenteN)||{};return [t.id,t.frenteN,f.nombre||"",t.actividad,t.resp,t.sop,f.lider||"",t.plazo,semOf(t.plazo),t.estado,t.pct,venc(t)?"Sí":"No",(t.notas||"")].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",");});
+  dl("PUKARA_seguimiento.csv","\ufeff"+[head.join(","),...rows].join("\n"),"text/csv");
+}
+function restore(){ if(confirm("¿Restaurar el plan original? Se perderán los cambios guardados.")){ S=freshState(); corte=SEED.corte; document.getElementById("corte").value=corte; render(); } }
+
+/* ---------- BOOT ---------- */
+(async function(){
+  document.getElementById("cierreLbl").textContent=SEED.cierre.slice(8,10)+"/"+SEED.cierre.slice(5,7)+"/"+SEED.cierre.slice(0,4);
+  const saved=await load();
+  if(saved&&saved.S){ S=saved.S; corte=saved.corte||SEED.corte; } else { S=freshState(); }
+  // safety: ensure arrays exist
+  if(!S.personas||!S.frentes||!S.tasks){ S=freshState(); }
+  const ci=document.getElementById("corte"); ci.value=corte; ci.min="2026-06-01"; ci.max="2026-06-30";
+  ci.onchange=e=>{ corte=e.target.value||SEED.corte; render(); };
+  render();
+})();
+</script>
+</body>
+</html>
